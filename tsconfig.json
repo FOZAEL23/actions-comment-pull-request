@@ -1,4 +1,5 @@
 {
+  // tsignore
   "extends": "@tsconfig/node16/tsconfig.json",
   "compilerOptions": {
     "outDir": "./lib",
