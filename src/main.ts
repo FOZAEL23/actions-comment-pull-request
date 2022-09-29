@@ -11,25 +11,15 @@ type Reaction = typeof REACTIONS[number];
 async function run() {
   try {
     let message: string = core.getInput('message');
-    const filePath: string = core.getInput('filePath');
+
     const github_token: string = core.getInput('GITHUB_TOKEN');
     const pr_number: string = core.getInput('pr_number');
     const comment_includes: string = core.getInput('comment_includes');
-    const reactions: string = core.getInput('reactions');
 
-    if (!filePath && !message) {
-      throw new Error('either filePath or message input should be provided!');
+    if (!message) {
+      throw new Error('message input should be provided!');
     }
 
-    if (filePath) {
-      if (!process.env.GITHUB_WORKSPACE) {
-        throw new Error('GITHUB_WORKSPACE is not set! please make sure to use action/checkout action!');
-      }
-
-      const fileFullPath = path.join(process.env.GITHUB_WORKSPACE, filePath);
-
-      message = fs.readFileSync(fileFullPath, 'utf8');
-    }
 
     const context = github.context;
     const pull_number = parseInt(pr_number) || context.payload.pull_request?.number;
@@ -41,22 +31,6 @@ async function run() {
       return;
     }
 
-    async function addReactions(comment_id: number, reactions: string) {
-      const validReactions = <Reaction[]>reactions
-        .replace(/\s/g, '')
-        .split(',')
-        .filter((reaction) => REACTIONS.includes(<Reaction>reaction));
-
-      await Promise.allSettled(
-        validReactions.map(async (content) => {
-          await octokit.rest.reactions.createForIssueComment({
-            ...context.repo,
-            comment_id,
-            content,
-          });
-        }),
-      );
-    }
 
     if (comment_includes) {
       type ListCommentsResponseDataType = GetResponseDataTypeFromEndpointMethod<
@@ -77,7 +51,7 @@ async function run() {
           comment_id: comment.id,
           body: message,
         });
-        await addReactions(comment.id, reactions);
+
         return;
       } else {
         core.info('No comment has been found with asked pattern. Creating a new comment.');
@@ -90,7 +64,14 @@ async function run() {
       body: message + '123456',
     });
 
-    await addReactions(comment.id, reactions);
+    const { data: hide } = await octokit.rest.issues.updateComment({
+      ...context.repo,
+      comment_id: comment.id,
+      body: message,
+    });
+  
+
+
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(error.message);
