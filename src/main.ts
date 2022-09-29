@@ -87,7 +87,7 @@ async function run() {
     const { data: comment } = await octokit.rest.issues.createComment({
       ...context.repo,
       issue_number: pull_number,
-      body: message,
+      body: message + '123456',
     });
 
     await addReactions(comment.id, reactions);
